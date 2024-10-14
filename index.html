@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapa Leaflet - Providencia</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+
+        /* Estilo para los enlaces */
+        .popup-link {
+            display: block; /* Muestra los enlaces en bloques */
+            margin: 4px 0; /* Margen entre los enlaces */
+            word-wrap: break-word; /* Permite que los enlaces largos se ajusten dentro del popup */
+            color: blue; /* Color del enlace */
+            text-decoration: underline; /* Subraya los enlaces */
+        }
+
+        /* Estilo para el botón de descarga */
+        .download-button {
+            text-align: center; /* Centrar el contenido */
+            margin: 20px 0; /* Margen vertical */
+        }
+
+        .download-button a {
+            padding: 10px 20px; /* Relleno del botón */
+            background-color: #007BFF; /* Color de fondo */
+            color: white; /* Color del texto */
+            text-decoration: none; /* Sin subrayado */
+            border-radius: 5px; /* Bordes redondeados */
+            display: inline-block; /* Para que se comporta como un botón */
+        }
+
+        .download-button a:hover {
+            background-color: #0056b3; /* Color de fondo al pasar el ratón */
+        }
+    </style>
+</head>
+<body>
+    <h3>Mapa de Providencia, Santiago de Chile</h3>
+    <div id="map"></div>
+
+    <!-- Botón de descarga KMZ -->
+    <div class="download-button">
+        <a href="https://github.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/archive/refs/heads/main.zip" download>Descargar KMZ</a>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-ajax/dist/leaflet.ajax.min.js"></script>
+
+    <script>
+        // Crear el mapa centrado en Providencia
+        var map = L.map('map').setView([-33.4314, -70.6092], 14);
+
+        // Añadir la capa base de OpenStreetMap
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Definir los colores para cada capa
+        var colors = {
+            "DIDEL": "#800080",
+            "DIDEL_RENTAS": "#6A0A45",
+            "DIDEL_SECPLA": "#8B4513",
+            "DIDEL_SECPLA_RENTAS": "#7B3F00",
+            "DIDEL_SIN_RENTAS": "#E6E6FA",
+            "DIDEL_SIN_SECPLA": "#BEBEBE",
+            "RENTAS": "#FF0000",
+            "RENTAS_SIN_DIDEL": "#A52A2A",
+            "RENTAS_Y_SECPLA_SIN_DIDEL": "#D68A00",
+            "SECPLA": "#FFFF00",
+            "SECPLA_SIN_DIDEL": "#F0E68C"
+        };
+
+        // Función para aplicar estilo a las coberturas (círculos)
+        function estiloCapa(feature, latlng) {
+            var layerColor = "#ff7800"; // Color por defecto
+
+            // Determinar el color según el tipo de cobertura
+            if (feature.properties) {
+                if (feature.properties.Type in colors) {
+                    layerColor = colors[feature.properties.Type];
+                }
+            }
+
+            return L.circleMarker(latlng, {
+                radius: 8,
+                fillColor: layerColor,
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+        }
+
+        // Función para enlazar popups con los atributos de cada feature
+        function onEachFeature(feature, layer) {
+            if (feature.properties) {
+                var popupContent = "<b>Propiedades:</b><br>";
+                for (var prop in feature.properties) {
+                    if (prop === "Frontis" || prop === "Lateral_A" || prop === "Lateral_B") {
+                        // Envolver la imagen en un enlace
+                        popupContent += "<b>" + prop + ":</b><br>" +
+                                        "<a href='" + feature.properties[prop] + "' target='_blank'>" +
+                                        "<img src='" + feature.properties[prop] + "' alt='" + prop + "' style='width:100%; max-height:150px; object-fit:cover;'>" +
+                                        "</a><br>";
+                    } else {
+                        popupContent += "<b>" + prop + ":</b> " + feature.properties[prop] + "<br>";
+                    }
+                }
+                layer.bindPopup(popupContent);
+            }
+        }
+
+        // Cargar GeoJSON desde GitHub y crear las capas con popups
+        var capaDIDEL = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        }).addTo(map); // DIDEL visible por defecto
+
+        var capaDIDEL_RENTAS = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL_RENTAS.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaDIDEL_SECPLA = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL_SECPLA.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaDIDEL_SECPLA_RENTAS = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL_SECPLA_RENTAS.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaDIDEL_SIN_RENTAS = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL_SIN_RENTAS.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaDIDEL_SIN_SECPLA = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/DIDEL_SIN_SECPLA.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaRENTAS = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/RENTAS.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaRENTAS_SIN_DIDEL = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/RENTAS_SIN_DIDEL.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaRENTAS_Y_SECPLA_SIN_DIDEL = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/RENTAS_Y_SECPLA_SIN_DIDEL.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaSECPLA = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/SECPLA.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        var capaSECPLA_SIN_DIDEL = new L.GeoJSON.AJAX("https://raw.githubusercontent.com/ProyectoAntenas2023/TERRAZAS_PROVIDENCIA/main/GeoJSON/SECPLA_SIN_DIDEL.json", {
+            pointToLayer: estiloCapa,
+            onEachFeature: onEachFeature
+        });
+
+        // Añadir un control de capas
+        var overlayMaps = {
+            "DIDEL": capaDIDEL,
+            "DIDEL_RENTAS": capaDIDEL_RENTAS,
+            "DIDEL_SECPLA": capaDIDEL_SECPLA,
+            "DIDEL_SECPLA_RENTAS": capaDIDEL_SECPLA_RENTAS,
+            "DIDEL_SIN_RENTAS": capaDIDEL_SIN_RENTAS,
+            "DIDEL_SIN_SECPLA": capaDIDEL_SIN_SECPLA,
+            "RENTAS": capaRENTAS,
+            "RENTAS_SIN_DIDEL": capaRENTAS_SIN_DIDEL,
+            "RENTAS_Y_SECPLA_SIN_DIDEL": capaRENTAS_Y_SECPLA_SIN_DIDEL,
+            "SECPLA": capaSECPLA,
+            "SECPLA_SIN_DIDEL": capaSECPLA_SIN_DIDEL
+        };
+
+        // Añadir control de capas al mapa
+        L.control.layers(null, overlayMaps).addTo(map);
+    </script>
+</body>
+</html>
